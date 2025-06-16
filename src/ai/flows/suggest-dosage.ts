@@ -20,8 +20,9 @@ const SuggestDosageInputSchema = z.object({
     .describe('La profondità media della piscina in metri.'),
   currentChlorine: z
     .number()
-    .describe('Il livello attuale di cloro in mg/l.'),
-  currentPH: z.number().describe('Il livello attuale di pH.'),
+    .optional()
+    .describe('Il livello attuale di cloro in mg/l (opzionale).'),
+  currentPH: z.number().optional().describe('Il livello attuale di pH (opzionale).'),
   targetChlorine: z.number().default(1.25).describe('Il livello di cloro desiderato in mg/l.'),
   targetPH: z.number().default(7.3).describe('Il livello di pH desiderato.'),
 });
@@ -30,10 +31,12 @@ export type SuggestDosageInput = z.infer<typeof SuggestDosageInputSchema>;
 const SuggestDosageOutputSchema = z.object({
   chlorineDosageSuggestion: z
     .string()
-    .describe('Dosaggio suggerito per il cloro, con un disclaimer.'),
+    .optional()
+    .describe('Dosaggio suggerito per il cloro, con un disclaimer (se il cloro attuale è fornito).'),
   phMinusDosageSuggestion: z
     .string()
-    .describe('Dosaggio suggerito per il pH-, con un disclaimer.'),
+    .optional()
+    .describe('Dosaggio suggerito per il pH-, con un disclaimer (se il pH attuale è fornito).'),
 });
 export type SuggestDosageOutput = z.infer<typeof SuggestDosageOutputSchema>;
 
@@ -45,33 +48,38 @@ const prompt = ai.definePrompt({
   name: 'suggestDosagePrompt',
   input: {schema: SuggestDosageInputSchema},
   output: {schema: SuggestDosageOutputSchema},
-  prompt: `Date le dimensioni della piscina e i parametri attuali dell'acqua, fornire suggerimenti in italiano per regolare i livelli di cloro e pH.
+  prompt: `Date le dimensioni della piscina e i parametri attuali dell'acqua (se forniti), fornire suggerimenti in italiano per regolare i livelli di cloro e pH.
 
 Dimensioni Piscina:
 - Lunghezza: {{poolLength}} metri
 - Larghezza: {{poolWidth}} metri
 - Profondità Media: {{poolAverageDepth}} metri
 
-Parametri Acqua Attuali:
-- Cloro: {{currentChlorine}} mg/l
-- pH: {{currentPH}}
+Parametri Acqua Attuali (fornire suggerimenti solo se questi valori sono presenti):
+{{#if currentChlorine}}
+- Cloro Attuale: {{currentChlorine}} mg/l
+{{/if}}
+{{#if currentPH}}
+- pH Attuale: {{currentPH}}
+{{/if}}
 
 Parametri Acqua Desiderati:
 - Cloro Desiderato: {{targetChlorine}} mg/l
 - pH Desiderato: {{targetPH}}
 
 Istruzioni:
-1. Calcola il volume della piscina in metri cubi (lunghezza * larghezza * profondità media).
-2. Fornisci un suggerimento di dosaggio del cloro per raggiungere il livello di cloro desiderato ({{targetChlorine}} mg/l) dal livello attuale ({{currentChlorine}} mg/l).
-   - Includi la quantità approssimativa di dicloro granulare (o cloro liquido equivalente) necessaria per un aumento di 1 mg/l per 10 metri cubi, come indicato nella base di conoscenza. Sottolinea che le quantità esatte possono variare a seconda del prodotto specifico e che è sempre necessario seguire le istruzioni del produttore.
-3. Fornisci un suggerimento di dosaggio di pH- per raggiungere il livello di pH desiderato ({{targetPH}}) dal livello attuale ({{currentPH}}).
-   - Includi la quantità approssimativa di pH- granulare (o prodotto equivalente) necessaria per diminuire il pH di 0,1 unità per 10 metri cubi, come indicato nella base di conoscenza.
-4. Includi un disclaimer che affermi che tutti i dosaggi devono essere calibrati in base ai prodotti specifici utilizzati. Il disclaimer deve essere in italiano.
+1. Calcola il volume della piscina in metri cubi (lunghezza * larghezza * profondità media). Questo è sempre necessario.
+2. Se 'currentChlorine' è fornito, fornisci un suggerimento di dosaggio del cloro per raggiungere il livello di cloro desiderato ({{targetChlorine}} mg/l) dal livello attuale ({{currentChlorine}} mg/l).
+   - Includi la quantità approssimativa di dicloro granulare (o cloro liquido equivalente) necessaria per un aumento di 1 mg/l per 10 metri cubi, come indicato nella base di conoscenza. Sottolinea che le quantità esatte possono variare a seconda del prodotto specifico e che è sempre necessario seguire le istruzioni del produttore. Includi il disclaimer nel suggerimento.
+3. Se 'currentPH' è fornito, fornisci un suggerimento di dosaggio di pH- per raggiungere il livello di pH desiderato ({{targetPH}}) dal livello attuale ({{currentPH}}).
+   - Includi la quantità approssimativa di pH- granulare (o prodotto equivalente) necessaria per diminuire il pH di 0,1 unità per 10 metri cubi, come indicato nella base di conoscenza. Includi il disclaimer nel suggerimento.
+4. Se non viene fornito né 'currentChlorine' né 'currentPH', non generare alcun suggerimento di dosaggio. L'output JSON dovrebbe avere i campi dei suggerimenti omessi o nulli.
+5. Tutti i suggerimenti e i disclaimer devono essere in italiano.
 
-Formato Output (le chiavi devono rimanere in inglese, i valori devono essere in italiano):
+Formato Output Esempio (le chiavi devono rimanere in inglese, i valori devono essere in italiano; i campi dei suggerimenti sono opzionali):
 {
-  "chlorineDosageSuggestion": "Suggerimento dosaggio cloro in italiano, incluso disclaimer.",
-  "phMinusDosageSuggestion": "Suggerimento dosaggio pH minus in italiano, incluso disclaimer."
+  "chlorineDosageSuggestion": "Opzionale: Suggerimento dosaggio cloro in italiano, incluso disclaimer.",
+  "phMinusDosageSuggestion": "Opzionale: Suggerimento dosaggio pH minus in italiano, incluso disclaimer."
 }
 
 Base di Conoscenza:
@@ -87,7 +95,9 @@ const suggestDosageFlow = ai.defineFlow(
     outputSchema: SuggestDosageOutputSchema,
   },
   async input => {
+    // Se non viene fornito né cloro attuale né pH attuale, potremmo restituire un output vuoto prima di chiamare il prompt.
+    // Tuttavia, il prompt stesso è istruito a gestire questo caso, quindi lasciamo che sia il modello a decidere.
     const {output} = await prompt(input);
-    return output!;
+    return output!; // output può essere vuoto o contenere solo i suggerimenti applicabili
   }
 );

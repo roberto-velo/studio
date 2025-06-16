@@ -14,7 +14,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { suggestDosage, type SuggestDosageOutput } from '@/ai/flows/suggest-dosage';
 import { Loader2, Ruler, Thermometer, Calculator, Target, TestTube2, Atom, Droplets, Zap, Sparkles as SaltIcon, Lightbulb, Waves, AlertTriangle, RotateCcw } from 'lucide-react';
-import { Form } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormControl, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 const formSchema = z.object({
@@ -22,10 +23,10 @@ const formSchema = z.object({
   poolWidth: z.coerce.number().positive({ message: "La larghezza deve essere positiva." }),
   poolAverageDepth: z.coerce.number().positive({ message: "La profondità media deve essere positiva." }),
   waterTemperature: z.coerce.number().optional(),
-  currentChlorine: z.coerce.number().min(0, { message: "Il cloro non può essere negativo." }),
-  currentPH: z.coerce.number().min(0, { message: "Il pH non può essere negativo." }).max(14, { message: "Il pH deve essere compreso tra 0 e 14." }),
-  currentRedox: z.coerce.number().optional(),
-  currentSalt: z.coerce.number().min(0, { message: "Il sale non può essere negativo." }).optional(),
+  currentChlorine: z.coerce.number().min(0, { message: "Il cloro non può essere negativo." }).optional().or(z.literal('')),
+  currentPH: z.coerce.number().min(0, { message: "Il pH non può essere negativo." }).max(14, { message: "Il pH deve essere compreso tra 0 e 14." }).optional().or(z.literal('')),
+  currentRedox: z.coerce.number().optional().or(z.literal('')),
+  currentSalt: z.coerce.number().min(0, { message: "Il sale non può essere negativo." }).optional().or(z.literal('')),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -66,7 +67,13 @@ export default function PoolPalApp() {
 
   useEffect(() => {
     const { poolLength, poolWidth, poolAverageDepth, currentSalt } = watchedValues;
-    let newCalculations: CalculatedValues = {};
+    let newCalculations: CalculatedValues = {
+      surfaceArea: undefined,
+      volumeM3: undefined,
+      volumeLiters: undefined,
+      requiredSaltTotal: undefined,
+      saltToAdd: undefined,
+    };
 
     if (poolLength && poolWidth && poolLength > 0 && poolWidth > 0) {
       const surface = poolLength * poolWidth;
@@ -76,26 +83,12 @@ export default function PoolPalApp() {
         const volume = surface * poolAverageDepth;
         newCalculations.volumeM3 = parseFloat(volume.toFixed(2));
         newCalculations.volumeLiters = parseFloat((volume * 1000).toFixed(2));
-        newCalculations.requiredSaltTotal = parseFloat((newCalculations.volumeM3 * 4).toFixed(2)); 
-      } else {
-        newCalculations.volumeM3 = undefined;
-        newCalculations.volumeLiters = undefined;
-        newCalculations.requiredSaltTotal = undefined;
+        newCalculations.requiredSaltTotal = parseFloat((newCalculations.volumeM3 * 4).toFixed(2));
       }
       
       if (typeof currentSalt === 'number' && currentSalt >= 0 && newCalculations.requiredSaltTotal !== undefined) {
         newCalculations.saltToAdd = parseFloat(Math.max(0, newCalculations.requiredSaltTotal - currentSalt).toFixed(2));
-      } else if (newCalculations.requiredSaltTotal !== undefined){
-        newCalculations.saltToAdd = newCalculations.requiredSaltTotal;
-      } else {
-         newCalculations.saltToAdd = undefined;
       }
-    } else {
-        newCalculations.surfaceArea = undefined;
-        newCalculations.volumeM3 = undefined;
-        newCalculations.volumeLiters = undefined;
-        newCalculations.requiredSaltTotal = undefined;
-        newCalculations.saltToAdd = undefined;
     }
     setCalculatedValues(prev => ({ ...prev, ...newCalculations }));
   }, [watchedValues.poolLength, watchedValues.poolWidth, watchedValues.poolAverageDepth, watchedValues.currentSalt]);
@@ -113,8 +106,8 @@ export default function PoolPalApp() {
         poolLength: data.poolLength,
         poolWidth: data.poolWidth,
         poolAverageDepth: data.poolAverageDepth,
-        currentChlorine: data.currentChlorine,
-        currentPH: data.currentPH,
+        currentChlorine: typeof data.currentChlorine === 'number' ? data.currentChlorine : undefined,
+        currentPH: typeof data.currentPH === 'number' ? data.currentPH : undefined,
         targetChlorine: 1.25, 
         targetPH: 7.3,      
       };
@@ -133,7 +126,7 @@ export default function PoolPalApp() {
   };
 
   const handleReset = () => {
-    resetForm({ // Resetta i valori del modulo ai defaultValues specificati in useForm
+    resetForm({ 
       poolLength: undefined,
       poolWidth: undefined,
       poolAverageDepth: undefined,
@@ -194,13 +187,13 @@ export default function PoolPalApp() {
           <Card className="shadow-lg overflow-hidden">
             <CardHeader className="bg-primary/10">
               <CardTitle className="font-headline flex items-center gap-2 text-xl"><Ruler className="w-6 h-6 text-primary" />Dimensioni Piscina & Temperatura</CardTitle>
-              <CardDescription>Inserisci le misure della tua piscina.</CardDescription>
+              <CardDescription>Inserisci le misure della tua piscina e la temperatura dell'acqua (opzionale).</CardDescription>
             </CardHeader>
             <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {renderFormField("poolLength", "Lunghezza (m)", <Ruler className="w-4 h-4" />, "es., 10")}
-              {renderFormField("poolWidth", "Larghezza (m)", <Ruler className="w-4 h-4" />, "es., 5")}
-              {renderFormField("poolAverageDepth", "Prof. Media (m)", <Ruler className="w-4 h-4" />, "es., 1.5")}
-              {renderFormField("waterTemperature", "Temp. Acqua (°C) (Opzionale)", <Thermometer className="w-4 h-4" />, "es., 25")}
+              {renderFormField("poolLength", "Lunghezza (m)", <Ruler className="w-4 h-4" />, "es. 10")}
+              {renderFormField("poolWidth", "Larghezza (m)", <Ruler className="w-4 h-4" />, "es. 5")}
+              {renderFormField("poolAverageDepth", "Prof. Media (m)", <Ruler className="w-4 h-4" />, "es. 1.5")}
+              {renderFormField("waterTemperature", "Temp. Acqua (°C) (Opz.)", <Thermometer className="w-4 h-4" />, "es. 25")}
             </CardContent>
           </Card>
 
@@ -212,7 +205,9 @@ export default function PoolPalApp() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div><strong>Area Superficie:</strong> {calculatedValues.surfaceArea ?? 'N/A'} m²</div>
                   <div><strong>Volume:</strong> {calculatedValues.volumeM3 ?? 'N/A'} m³ ({calculatedValues.volumeLiters ?? 'N/A'} L)</div>
-                  <div><strong>Sale Totale Richiesto (per 4kg/m³):</strong> {calculatedValues.requiredSaltTotal ?? 'N/A'} kg</div>
+                  {calculatedValues.requiredSaltTotal !== undefined && (
+                    <div><strong>Sale Totale Richiesto (a 4kg/m³):</strong> {calculatedValues.requiredSaltTotal.toFixed(2)} kg</div>
+                  )}
               </div>
               <Separator />
               <h4 className="font-semibold text-md">Parametri Acqua Ideali:</h4>
@@ -229,19 +224,19 @@ export default function PoolPalApp() {
 
           <Card className="shadow-lg overflow-hidden">
             <CardHeader className="bg-primary/10">
-              <CardTitle className="font-headline flex items-center gap-2 text-xl"><TestTube2 className="w-6 h-6 text-primary" />Analisi Acqua Attuale</CardTitle>
-              <CardDescription>Inserisci i valori del tuo ultimo test dell'acqua.</CardDescription>
+              <CardTitle className="font-headline flex items-center gap-2 text-xl"><TestTube2 className="w-6 h-6 text-primary" />Analisi Acqua Attuale (Opzionale)</CardTitle>
+              <CardDescription>Inserisci i valori del tuo ultimo test dell'acqua per ricevere suggerimenti. Compila solo i campi per cui desideri un consiglio.</CardDescription>
             </CardHeader>
             <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {renderFormField("currentChlorine", "Cloro Libero (mg/l)", <Atom className="w-4 h-4" />, "es., 0.5")}
-              {renderFormField("currentPH", "pH", <Droplets className="w-4 h-4" />, "es., 7.8")}
-              {renderFormField("currentRedox", "Redox (mV) (Opzionale)", <Zap className="w-4 h-4" />, "es., 650")}
-              {renderFormField("currentSalt", "Sale Attuale (kg) (Opzionale, per elettrolisi)", <SaltIcon className="w-4 h-4" />, "es., 50")}
+              {renderFormField("currentChlorine", "Cloro Libero (mg/l) (Opz.)", <Atom className="w-4 h-4" />, "es. 0.5")}
+              {renderFormField("currentPH", "pH (Opz.)", <Droplets className="w-4 h-4" />, "es. 7.8")}
+              {renderFormField("currentRedox", "Redox (mV) (Opz.)", <Zap className="w-4 h-4" />, "es. 650")}
+              {renderFormField("currentSalt", "Sale Attuale (kg) (Opz., per elettrolisi)", <SaltIcon className="w-4 h-4" />, "es. 50")}
             </CardContent>
             <CardFooter className="p-6 flex flex-col md:flex-row gap-2">
               <Button type="submit" disabled={isLoading} className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground">
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
-                Calcola & Ottieni Suggerimenti
+                Ottieni Suggerimenti
               </Button>
               <Button type="button" variant="outline" onClick={handleReset} className="w-full md:w-auto">
                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -252,10 +247,10 @@ export default function PoolPalApp() {
         </form>
       </Form>
 
-      {(dosageSuggestions || (calculatedValues.volumeM3 && typeof watchedValues.currentSalt === 'number') || (calculatedValues.volumeM3 && watchedValues.currentSalt === undefined && calculatedValues.saltToAdd !== undefined) ) && (
+      {(dosageSuggestions || calculatedValues.volumeM3) && (
         <Card className="shadow-lg overflow-hidden">
           <CardHeader className="bg-accent/10">
-            <CardTitle className="font-headline flex items-center gap-2 text-xl"><Lightbulb className="w-6 h-6 text-accent" />Suggerimenti Dosaggio</CardTitle>
+            <CardTitle className="font-headline flex items-center gap-2 text-xl"><Lightbulb className="w-6 h-6 text-accent" />Suggerimenti & Calcoli</CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             {dosageSuggestions?.chlorineDosageSuggestion && (
@@ -273,8 +268,7 @@ export default function PoolPalApp() {
             {typeof calculatedValues.saltToAdd === 'number' && calculatedValues.saltToAdd >= 0 && calculatedValues.volumeM3 !== undefined && (
                  <div className="p-3 border rounded-md bg-background">
                     <h4 className="font-semibold flex items-center gap-2"><SaltIcon className="w-5 h-5 text-primary" />Sale da Aggiungere (per sistemi a sale):</h4>
-                    <p className="text-sm">Devi aggiungere circa <strong>{calculatedValues.saltToAdd.toFixed(2)} kg</strong> di sale per raggiungere l'obiettivo di 4 kg/m³.</p>
-                    {typeof watchedValues.currentSalt !== 'number' && <p className="text-xs text-muted-foreground">Questo presuppone 0kg di sale attuale poiché non è stato fornito alcun valore.</p>}
+                    <p className="text-sm">Devi aggiungere circa <strong>{calculatedValues.saltToAdd.toFixed(2)} kg</strong> di sale per raggiungere l'obiettivo di 4 kg/m³ (basato sul sale attuale fornito).</p>
                  </div>
             )}
             
@@ -298,4 +292,3 @@ export default function PoolPalApp() {
     </div>
   );
 }
-
