@@ -13,8 +13,8 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { suggestDosage, type SuggestDosageOutput } from '@/ai/flows/suggest-dosage';
-import { Loader2, Ruler, Thermometer, Calculator, Target, TestTube2, Atom, Droplets, Zap, Sparkles as SaltIcon, Lightbulb, Waves, AlertTriangle } from 'lucide-react';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Loader2, Ruler, Thermometer, Calculator, Target, TestTube2, Atom, Droplets, Zap, Sparkles as SaltIcon, Lightbulb, Waves, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Form } from "@/components/ui/form";
 
 
 const formSchema = z.object({
@@ -60,7 +60,7 @@ export default function PoolPalApp() {
     }
   });
 
-  const { watch, formState: { errors } } = form;
+  const { watch, formState: { errors }, reset: resetForm } = form;
 
   const watchedValues = watch();
 
@@ -76,7 +76,7 @@ export default function PoolPalApp() {
         const volume = surface * poolAverageDepth;
         newCalculations.volumeM3 = parseFloat(volume.toFixed(2));
         newCalculations.volumeLiters = parseFloat((volume * 1000).toFixed(2));
-        newCalculations.requiredSaltTotal = parseFloat((newCalculations.volumeM3 * 4).toFixed(2)); // 4 kg/m³
+        newCalculations.requiredSaltTotal = parseFloat((newCalculations.volumeM3 * 4).toFixed(2)); 
       } else {
         newCalculations.volumeM3 = undefined;
         newCalculations.volumeLiters = undefined;
@@ -130,6 +130,21 @@ export default function PoolPalApp() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleReset = () => {
+    resetForm({ // Resetta i valori del modulo ai defaultValues specificati in useForm
+      poolLength: undefined,
+      poolWidth: undefined,
+      poolAverageDepth: undefined,
+      waterTemperature: undefined,
+      currentChlorine: undefined,
+      currentPH: undefined,
+      currentRedox: undefined,
+      currentSalt: undefined,
+    });
+    setDosageSuggestions(null);
+    setCalculatedValues({});
   };
 
   const idealValues = [
@@ -223,10 +238,14 @@ export default function PoolPalApp() {
               {renderFormField("currentRedox", "Redox (mV) (Opzionale)", <Zap className="w-4 h-4" />, "es., 650")}
               {renderFormField("currentSalt", "Sale Attuale (kg) (Opzionale, per elettrolisi)", <SaltIcon className="w-4 h-4" />, "es., 50")}
             </CardContent>
-            <CardFooter className="p-6">
+            <CardFooter className="p-6 flex flex-col md:flex-row gap-2">
               <Button type="submit" disabled={isLoading} className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground">
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
-                Calcola & Ottieni Suggerimenti Dosaggio
+                Calcola & Ottieni Suggerimenti
+              </Button>
+              <Button type="button" variant="outline" onClick={handleReset} className="w-full md:w-auto">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Azzera Modulo
               </Button>
             </CardFooter>
           </Card>
@@ -279,3 +298,4 @@ export default function PoolPalApp() {
     </div>
   );
 }
+
