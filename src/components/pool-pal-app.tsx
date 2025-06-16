@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,13 +13,18 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { suggestDosage, type SuggestDosageOutput } from '@/ai/flows/suggest-dosage';
-import { Loader2, Ruler, Thermometer, Calculator, Target, TestTube2, Atom, Droplets, Zap, Sparkles as SaltIcon, Lightbulb, Waves, AlertTriangleIcon } from 'lucide-react';
+import { Loader2, Ruler, Thermometer, Calculator, Target, TestTube2, Atom, Droplets, Zap, Sparkles as SaltIcon, Lightbulb, Waves, AlertTriangle } from 'lucide-react';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 const formSchema = z.object({
   poolLength: z.coerce.number().positive({ message: "La lunghezza deve essere positiva." }),
   poolWidth: z.coerce.number().positive({ message: "La larghezza deve essere positiva." }),
-  poolAverageDepth: z.coerce.number().positive({ message: "La profondità deve essere positiva." }),
+  poolAverageDepth: z.coerce.number().positive({ message: "La profondità media deve essere positiva." }),
   waterTemperature: z.coerce.number().optional(),
+  trattamentoPiscina: z.enum(["cloro", "sale", "ossigeno", "bromo"], {
+    required_error: "Seleziona un tipo di trattamento.",
+  }),
   currentChlorine: z.coerce.number().min(0, { message: "Il cloro non può essere negativo." }),
   currentPH: z.coerce.number().min(0, { message: "Il pH non può essere negativo." }).max(14, { message: "Il pH deve essere compreso tra 0 e 14." }),
   currentRedox: z.coerce.number().optional(),
@@ -51,6 +56,7 @@ export default function PoolPalApp() {
       poolWidth: undefined,
       poolAverageDepth: undefined,
       waterTemperature: undefined,
+      trattamentoPiscina: undefined,
       currentChlorine: undefined,
       currentPH: undefined,
       currentRedox: undefined,
@@ -58,7 +64,7 @@ export default function PoolPalApp() {
     }
   });
 
-  const { watch, handleSubmit, formState: { errors } } = form;
+  const { watch, formState: { errors } } = form;
 
   const watchedValues = watch();
 
@@ -111,6 +117,7 @@ export default function PoolPalApp() {
         poolLength: data.poolLength,
         poolWidth: data.poolWidth,
         poolAverageDepth: data.poolAverageDepth,
+        trattamentoPiscina: data.trattamentoPiscina,
         currentChlorine: data.currentChlorine,
         currentPH: data.currentPH,
         targetChlorine: 1.25, 
@@ -134,7 +141,7 @@ export default function PoolPalApp() {
     { parameter: "Cloro", value: "1.0 – 1.5 mg/l", icon: <Atom className="w-4 h-4 text-accent" /> },
     { parameter: "pH", value: "7.2 – 7.4", icon: <Droplets className="w-4 h-4 text-accent" /> },
     { parameter: "Redox", value: "750 – 800 mV", icon: <Zap className="w-4 h-4 text-accent" /> },
-    { parameter: "Sale", value: "4 kg/m³", icon: <SaltIcon className="w-4 h-4 text-accent" /> },
+    { parameter: "Sale (per sistemi a sale)", value: "4 kg/m³", icon: <SaltIcon className="w-4 h-4 text-accent" /> },
   ];
 
   const renderFormField = (name: keyof FormValues, label: string, icon: React.ReactNode, placeholder?: string, type: string = "number", step: string = "0.1") => (
@@ -172,62 +179,89 @@ export default function PoolPalApp() {
         </p>
       </header>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <Card className="shadow-lg overflow-hidden">
-          <CardHeader className="bg-primary/10">
-            <CardTitle className="font-headline flex items-center gap-2 text-xl"><Ruler className="w-6 h-6 text-primary" />Dimensioni Piscina & Temperatura</CardTitle>
-            <CardDescription>Inserisci le misure della tua piscina.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderFormField("poolLength", "Lunghezza (m)", <Ruler className="w-4 h-4" />, "es., 10")}
-            {renderFormField("poolWidth", "Larghezza (m)", <Ruler className="w-4 h-4" />, "es., 5")}
-            {renderFormField("poolAverageDepth", "Prof. Media (m)", <Ruler className="w-4 h-4" />, "es., 1.5")}
-            {renderFormField("waterTemperature", "Temp. Acqua (°C) (Opzionale)", <Thermometer className="w-4 h-4" />, "es., 25")}
-          </CardContent>
-        </Card>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <Card className="shadow-lg overflow-hidden">
+            <CardHeader className="bg-primary/10">
+              <CardTitle className="font-headline flex items-center gap-2 text-xl"><Ruler className="w-6 h-6 text-primary" />Dimensioni Piscina & Temperatura</CardTitle>
+              <CardDescription>Inserisci le misure della tua piscina.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {renderFormField("poolLength", "Lunghezza (m)", <Ruler className="w-4 h-4" />, "es., 10")}
+              {renderFormField("poolWidth", "Larghezza (m)", <Ruler className="w-4 h-4" />, "es., 5")}
+              {renderFormField("poolAverageDepth", "Prof. Media (m)", <Ruler className="w-4 h-4" />, "es., 1.5")}
+              {renderFormField("waterTemperature", "Temp. Acqua (°C) (Opzionale)", <Thermometer className="w-4 h-4" />, "es., 25")}
+            </CardContent>
+          </Card>
 
-        <Card className="shadow-lg overflow-hidden">
-          <CardHeader className="bg-accent/10">
-            <CardTitle className="font-headline flex items-center gap-2 text-xl"><Calculator className="w-6 h-6 text-accent" />Calcoli & <Target className="w-6 h-6 text-accent"/>Valori Ideali</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div><strong>Area Superficie:</strong> {calculatedValues.surfaceArea ?? 'N/A'} m²</div>
-                <div><strong>Volume:</strong> {calculatedValues.volumeM3 ?? 'N/A'} m³ ({calculatedValues.volumeLiters ?? 'N/A'} L)</div>
-                <div><strong>Sale Totale Richiesto (per 4kg/m³):</strong> {calculatedValues.requiredSaltTotal ?? 'N/A'} kg</div>
-            </div>
-            <Separator />
-            <h4 className="font-semibold text-md">Parametri Acqua Ideali:</h4>
-            <ul className="space-y-1 text-sm">
-              {idealValues.map(item => (
-                <li key={item.parameter} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
-                  <span className="flex items-center gap-2">{item.icon} {item.parameter}</span>
-                  <span>{item.value}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+          <Card className="shadow-lg overflow-hidden">
+            <CardHeader className="bg-accent/10">
+              <CardTitle className="font-headline flex items-center gap-2 text-xl"><Calculator className="w-6 h-6 text-accent" />Calcoli & <Target className="w-6 h-6 text-accent"/>Valori Ideali</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div><strong>Area Superficie:</strong> {calculatedValues.surfaceArea ?? 'N/A'} m²</div>
+                  <div><strong>Volume:</strong> {calculatedValues.volumeM3 ?? 'N/A'} m³ ({calculatedValues.volumeLiters ?? 'N/A'} L)</div>
+                  <div><strong>Sale Totale Richiesto (per 4kg/m³):</strong> {calculatedValues.requiredSaltTotal ?? 'N/A'} kg</div>
+              </div>
+              <Separator />
+              <h4 className="font-semibold text-md">Parametri Acqua Ideali:</h4>
+              <ul className="space-y-1 text-sm">
+                {idealValues.map(item => (
+                  <li key={item.parameter} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
+                    <span className="flex items-center gap-2">{item.icon} {item.parameter}</span>
+                    <span>{item.value}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
 
-        <Card className="shadow-lg overflow-hidden">
-          <CardHeader className="bg-primary/10">
-            <CardTitle className="font-headline flex items-center gap-2 text-xl"><TestTube2 className="w-6 h-6 text-primary" />Analisi Acqua Attuale</CardTitle>
-            <CardDescription>Inserisci i valori del tuo ultimo test dell'acqua.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderFormField("currentChlorine", "Cloro Libero (mg/l)", <Atom className="w-4 h-4" />, "es., 0.5")}
-            {renderFormField("currentPH", "pH", <Droplets className="w-4 h-4" />, "es., 7.8")}
-            {renderFormField("currentRedox", "Redox (mV) (Opzionale)", <Zap className="w-4 h-4" />, "es., 650")}
-            {renderFormField("currentSalt", "Sale Attuale (kg) (Opzionale)", <SaltIcon className="w-4 h-4" />, "es., 50")}
-          </CardContent>
-          <CardFooter className="p-6">
-            <Button type="submit" disabled={isLoading} className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
-              Calcola & Ottieni Suggerimenti Dosaggio
-            </Button>
-          </CardFooter>
-        </Card>
-      </form>
+          <Card className="shadow-lg overflow-hidden">
+            <CardHeader className="bg-primary/10">
+              <CardTitle className="font-headline flex items-center gap-2 text-xl"><TestTube2 className="w-6 h-6 text-primary" />Analisi Acqua Attuale</CardTitle>
+              <CardDescription>Inserisci i valori del tuo ultimo test dell'acqua e il tipo di trattamento.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="trattamentoPiscina"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel className="flex items-center gap-2 text-sm" suppressHydrationWarning={true}>
+                      <TestTube2 className="w-4 h-4" /> Tipo di Trattamento
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className={errors.trattamentoPiscina ? 'border-destructive' : ''}>
+                          <SelectValue placeholder="Seleziona il tipo di trattamento" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="cloro">Cloro</SelectItem>
+                        <SelectItem value="sale">Sale (Elettrolisi)</SelectItem>
+                        <SelectItem value="ossigeno">Ossigeno Attivo</SelectItem>
+                        <SelectItem value="bromo">Bromo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {renderFormField("currentChlorine", "Cloro Libero (mg/l)", <Atom className="w-4 h-4" />, "es., 0.5")}
+              {renderFormField("currentPH", "pH", <Droplets className="w-4 h-4" />, "es., 7.8")}
+              {renderFormField("currentRedox", "Redox (mV) (Opzionale)", <Zap className="w-4 h-4" />, "es., 650")}
+              {renderFormField("currentSalt", "Sale Attuale (kg) (Opzionale, per elettrolisi)", <SaltIcon className="w-4 h-4" />, "es., 50")}
+            </CardContent>
+            <CardFooter className="p-6">
+              <Button type="submit" disabled={isLoading} className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground">
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
+                Calcola & Ottieni Suggerimenti Dosaggio
+              </Button>
+            </CardFooter>
+          </Card>
+        </form>
+      </Form>
 
       {(dosageSuggestions || (calculatedValues.volumeM3 && typeof watchedValues.currentSalt === 'number') || (calculatedValues.volumeM3 && watchedValues.currentSalt === undefined && calculatedValues.saltToAdd !== undefined) ) && (
         <Card className="shadow-lg overflow-hidden">
@@ -249,14 +283,14 @@ export default function PoolPalApp() {
             )}
             {typeof calculatedValues.saltToAdd === 'number' && calculatedValues.saltToAdd >= 0 && calculatedValues.volumeM3 !== undefined && (
                  <div className="p-3 border rounded-md bg-background">
-                    <h4 className="font-semibold flex items-center gap-2"><SaltIcon className="w-5 h-5 text-primary" />Sale da Aggiungere:</h4>
+                    <h4 className="font-semibold flex items-center gap-2"><SaltIcon className="w-5 h-5 text-primary" />Sale da Aggiungere (per sistemi a sale):</h4>
                     <p className="text-sm">Devi aggiungere circa <strong>{calculatedValues.saltToAdd.toFixed(2)} kg</strong> di sale per raggiungere l'obiettivo di 4 kg/m³.</p>
                     {typeof watchedValues.currentSalt !== 'number' && <p className="text-xs text-muted-foreground">Questo presuppone 0kg di sale attuale poiché non è stato fornito alcun valore.</p>}
                  </div>
             )}
             
             <Alert variant="default" className="border-primary/50 bg-primary/5">
-                <AlertTriangleIcon className="h-5 w-5 text-primary" />
+                <AlertTriangle className="h-5 w-5 text-primary" />
                 <AlertTitle className="font-semibold text-primary">Avviso Importante</AlertTitle>
                 <AlertDescription className="text-sm">
                 Tutti i suggerimenti di dosaggio sono approssimazioni. Calibra sempre i dosaggi in base ai prodotti specifici che utilizzi e ripeti il test dei parametri dell'acqua dopo l'applicazione. Consulta le istruzioni del prodotto per un dosaggio preciso.
@@ -275,3 +309,5 @@ export default function PoolPalApp() {
     </div>
   );
 }
+
+    

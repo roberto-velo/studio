@@ -18,6 +18,7 @@ const SuggestDosageInputSchema = z.object({
   poolAverageDepth: z
     .number()
     .describe('La profondità media della piscina in metri.'),
+  trattamentoPiscina: z.enum(["cloro", "sale", "ossigeno", "bromo"]).describe("Il tipo di trattamento della piscina (es. cloro, sale, ossigeno, bromo)."),
   currentChlorine: z
     .number()
     .describe('Il livello attuale di cloro in mg/l.'),
@@ -45,12 +46,14 @@ const prompt = ai.definePrompt({
   name: 'suggestDosagePrompt',
   input: {schema: SuggestDosageInputSchema},
   output: {schema: SuggestDosageOutputSchema},
-  prompt: `Date le dimensioni della piscina e i parametri attuali dell'acqua, fornire suggerimenti in italiano per regolare i livelli di cloro e pH.
+  prompt: `Date le dimensioni della piscina, il tipo di trattamento e i parametri attuali dell'acqua, fornire suggerimenti in italiano per regolare i livelli di cloro e pH.
 
 Dimensioni Piscina:
 - Lunghezza: {{poolLength}} metri
 - Larghezza: {{poolWidth}} metri
 - Profondità Media: {{poolAverageDepth}} metri
+
+Tipo di Trattamento: {{trattamentoPiscina}}
 
 Parametri Acqua Attuali:
 - Cloro: {{currentChlorine}} mg/l
@@ -63,10 +66,10 @@ Parametri Acqua Desiderati:
 Istruzioni:
 1. Calcola il volume della piscina in metri cubi (lunghezza * larghezza * profondità media).
 2. Fornisci un suggerimento di dosaggio del cloro per raggiungere il livello di cloro desiderato ({{targetChlorine}} mg/l) dal livello attuale ({{currentChlorine}} mg/l).
-   - Includi la quantità approssimativa di dicloro granulare o cloro liquido necessaria per un aumento di 1 mg/l per 10 metri cubi, come indicato nella base di conoscenza.
+   - Includi la quantità approssimativa di dicloro granulare o cloro liquido necessaria per un aumento di 1 mg/l per 10 metri cubi, come indicato nella base di conoscenza. Questo suggerimento è particolarmente rilevante per i trattamenti a base di cloro. Per altri tipi di trattamento, menziona che questo valore potrebbe non essere direttamente applicabile o che dovrebbero essere seguite le istruzioni specifiche del prodotto.
 3. Fornisci un suggerimento di dosaggio di pH- per raggiungere il livello di pH desiderato ({{targetPH}}) dal livello attuale ({{currentPH}}).
    - Includi la quantità approssimativa di pH- granulare (o prodotto equivalente) necessaria per diminuire il pH di 0,1 unità per 10 metri cubi, come indicato nella base di conoscenza.
-4. Includi un disclaimer che affermi che tutti i dosaggi devono essere calibrati in base ai prodotti specifici utilizzati. Il disclaimer deve essere in italiano.
+4. Includi un disclaimer che affermi che tutti i dosaggi devono essere calibrati in base ai prodotti specifici utilizzati e al tipo di trattamento. Il disclaimer deve essere in italiano.
 
 Formato Output (le chiavi devono rimanere in inglese, i valori devono essere in italiano):
 {
@@ -76,7 +79,7 @@ Formato Output (le chiavi devono rimanere in inglese, i valori devono essere in 
 
 Base di Conoscenza:
 - Circa 150g di dicloro granulare o 100ml di cloro liquido aumentano il cloro di 1 mg/l per 10 metri cubi.
-- Circa 100g di pH- granulare (o polvere equivalente) riducono il pH di 0,1 unità per 10 metri cubi.
+- Circa 200g di pH- granulare (o polvere equivalente) riducono il pH di 0,1 unità per 10 metri cubi.
 `,
 });
 
@@ -91,3 +94,5 @@ const suggestDosageFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
