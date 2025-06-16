@@ -30,10 +30,10 @@ export type SuggestDosageInput = z.infer<typeof SuggestDosageInputSchema>;
 const SuggestDosageOutputSchema = z.object({
   chlorineDosageSuggestion: z
     .string()
-    .describe('Suggested dosage for chlorine, with a disclaimer, in Italian.'),
+    .describe('Suggested dosage for chlorine, with a disclaimer.'),
   phMinusDosageSuggestion: z
     .string()
-    .describe('Suggested dosage for pH-, with a disclaimer, in Italian.'),
+    .describe('Suggested dosage for pH-, with a disclaimer.'),
 });
 export type SuggestDosageOutput = z.infer<typeof SuggestDosageOutputSchema>;
 
@@ -45,39 +45,38 @@ const prompt = ai.definePrompt({
   name: 'suggestDosagePrompt',
   input: {schema: SuggestDosageInputSchema},
   output: {schema: SuggestDosageOutputSchema},
-  prompt: `Dati le dimensioni della piscina e i parametri attuali dell'acqua, fornisci suggerimenti per regolare i livelli di cloro e pH.
-Per favore, fornisci tutti i suggerimenti e le descrizioni in lingua italiana.
+  prompt: `Given the pool dimensions and current water parameters, provide suggestions for adjusting chlorine and pH levels.
 
-Dimensioni Piscina:
-- Lunghezza: {{poolLength}} metri
-- Larghezza: {{poolWidth}} metri
-- Profondità Media: {{poolAverageDepth}} metri
+Pool Dimensions:
+- Length: {{poolLength}} meters
+- Width: {{poolWidth}} meters
+- Average Depth: {{poolAverageDepth}} meters
 
-Parametri Attuali Acqua:
-- Cloro: {{currentChlorine}} mg/l
+Current Water Parameters:
+- Chlorine: {{currentChlorine}} mg/l
 - pH: {{currentPH}}
 
-Parametri Acqua Desiderati:
--Cloro Desiderato: {{targetChlorine}} mg/l
--pH Desiderato: {{targetPH}}
+Target Water Parameters:
+- Target Chlorine: {{targetChlorine}} mg/l
+- Target pH: {{targetPH}}
 
-Istruzioni:
-1. Calcola il volume della piscina in metri cubi (lunghezza * larghezza * profondità media).
-2. Fornisci un suggerimento di dosaggio del cloro per raggiungere il livello di cloro desiderato ({{targetChlorine}} mg/l) dal livello attuale ({{currentChlorine}} mg/l).
-   - Includi la quantità approssimativa di dicloro granulare o cloro liquido necessaria per un aumento di 1 mg/l per 10 metri cubi, come descritto nella base di conoscenza.
-3. Fornisci un suggerimento di dosaggio del pH- per raggiungere il livello di pH desiderato ({{targetPH}}) dal livello attuale ({{currentPH}}).
-   - Includi la quantità approssimativa di pH- granulare (o prodotto equivalente) necessaria per diminuire di 0,1 unità di pH per 10 metri cubi, come descritto nella base di conoscenza.
-4. Includi un'avvertenza che dichiari che tutti i dosaggi devono essere calibrati in base ai prodotti specifici utilizzati.
+Instructions:
+1. Calculate the pool volume in cubic meters (length * width * average depth).
+2. Provide a chlorine dosage suggestion to reach the target chlorine level ({{targetChlorine}} mg/l) from the current level ({{currentChlorine}} mg/l).
+   - Include the approximate amount of granular dichlor or liquid chlorine needed for a 1 mg/l increase per 10 cubic meters, as outlined in the knowledge base.
+3. Provide a pH- dosage suggestion to reach the target pH level ({{targetPH}}) from the current level ({{currentPH}}).
+   - Include the approximate amount of pH- granular (or equivalent product) needed to decrease pH by 0.1 units per 10 cubic meters, as outlined in the knowledge base.
+4. Include a disclaimer stating that all dosages must be calibrated to the specific products used.
 
-Formato Output (in italiano):
+Output Format:
 {
-  "chlorineDosageSuggestion": "Suggerimento per il dosaggio del cloro, inclusa l'avvertenza.",
-  "phMinusDosageSuggestion": "Suggerimento per il dosaggio del pH-, inclusa l'avvertenza."
+  "chlorineDosageSuggestion": "Chlorine dosage suggestion, including disclaimer.",
+  "phMinusDosageSuggestion": "pH minus dosage suggestion, including disclaimer."
 }
 
-Base di Conoscenza:
-- Approssimativamente 150g di dicloro granulare o 100ml di cloro liquido aumentano il cloro di 1 mg/l per 10 metri cubi.
-- Approssimativamente 200g di pH- granulare (o prodotto equivalente in polvere) riducono il pH di 0,1 unità per 10 metri cubi.
+Knowledge Base:
+- Approximately 150g of granular dichlor or 100ml of liquid chlorine increase chlorine by 1 mg/l per 10 cubic meters.
+- Approximately 100g of pH- granular (or powder equivalent) reduce pH by 0.1 units for 10 cubic meters.
 `,
 });
 
