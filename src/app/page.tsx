@@ -1,3 +1,9 @@
+import PoolPalApp from '@/components/pool-pal-app';
+
 export default function Home() {
-  return <></>;
+  return (
+    <main>
+      <PoolPalApp />
+    </main>
+  );
 }
