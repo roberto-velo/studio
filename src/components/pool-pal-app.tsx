@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -40,6 +41,7 @@ export default function PoolPalApp() {
   const [isLoading, setIsLoading] = useState(false);
   const [dosageSuggestions, setDosageSuggestions] = useState<SuggestDosageOutput | null>(null);
   const [calculatedValues, setCalculatedValues] = useState<CalculatedValues>({});
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -83,6 +85,10 @@ export default function PoolPalApp() {
     }
     setCalculatedValues(prev => ({ ...prev, ...newCalculations }));
   }, [watchedValues.poolLength, watchedValues.poolWidth, watchedValues.poolAverageDepth, watchedValues.currentSalt]);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
@@ -240,7 +246,11 @@ export default function PoolPalApp() {
         </Card>
       )}
       <footer className="text-center py-4 text-sm text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} Pool Pal. Dive into perfect water chemistry!</p>
+        {currentYear !== null ? (
+          <p>&copy; {currentYear} Pool Pal. Dive into perfect water chemistry!</p>
+        ) : (
+          <p>&copy; Pool Pal. Dive into perfect water chemistry!</p>
+        )}
       </footer>
     </div>
   );
