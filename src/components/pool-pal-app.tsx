@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { suggestDosage, type SuggestDosageOutput } from '@/ai/flows/suggest-dosage';
-import { Loader2, Ruler, Thermometer, Calculator, Target, TestTube2, Atom, Droplets, Zap, Salt as SaltIcon, Lightbulb, Waves, AlertTriangleIcon } from 'lucide-react';
+import { Loader2, Ruler, Thermometer, Calculator, Target, TestTube2, Atom, Droplets, Zap, Sparkles as SaltIcon, Lightbulb, Waves, AlertTriangleIcon } from 'lucide-react';
 
 const formSchema = z.object({
   poolLength: z.coerce.number().positive({ message: "Length must be positive." }),
