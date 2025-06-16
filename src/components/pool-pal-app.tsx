@@ -16,14 +16,14 @@ import { suggestDosage, type SuggestDosageOutput } from '@/ai/flows/suggest-dosa
 import { Loader2, Ruler, Thermometer, Calculator, Target, TestTube2, Atom, Droplets, Zap, Sparkles as SaltIcon, Lightbulb, Waves, AlertTriangleIcon } from 'lucide-react';
 
 const formSchema = z.object({
-  poolLength: z.coerce.number().positive({ message: "Length must be positive." }),
-  poolWidth: z.coerce.number().positive({ message: "Width must be positive." }),
-  poolAverageDepth: z.coerce.number().positive({ message: "Depth must be positive." }),
+  poolLength: z.coerce.number().positive({ message: "La lunghezza deve essere positiva." }),
+  poolWidth: z.coerce.number().positive({ message: "La larghezza deve essere positiva." }),
+  poolAverageDepth: z.coerce.number().positive({ message: "La profondità deve essere positiva." }),
   waterTemperature: z.coerce.number().optional(),
-  currentChlorine: z.coerce.number().min(0, { message: "Chlorine cannot be negative." }),
-  currentPH: z.coerce.number().min(0, { message: "pH cannot be negative." }).max(14, { message: "pH must be between 0 and 14." }),
+  currentChlorine: z.coerce.number().min(0, { message: "Il cloro non può essere negativo." }),
+  currentPH: z.coerce.number().min(0, { message: "Il pH non può essere negativo." }).max(14, { message: "Il pH deve essere compreso tra 0 e 14." }),
   currentRedox: z.coerce.number().optional(),
-  currentSalt: z.coerce.number().min(0, { message: "Salt cannot be negative." }).optional(),
+  currentSalt: z.coerce.number().min(0, { message: "Il sale non può essere negativo." }).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -45,7 +45,7 @@ export default function PoolPalApp() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    mode: 'onChange', // Validate on change for reactive calculations
+    mode: 'onChange',
     defaultValues: {
       poolLength: undefined,
       poolWidth: undefined,
@@ -69,19 +69,31 @@ export default function PoolPalApp() {
     if (poolLength && poolWidth && poolLength > 0 && poolWidth > 0) {
       const surface = poolLength * poolWidth;
       newCalculations.surfaceArea = parseFloat(surface.toFixed(2));
-      newCalculations.requiredSaltTotal = parseFloat((surface * 4).toFixed(2)); // 4 kg/m²
 
       if (poolAverageDepth && poolAverageDepth > 0) {
         const volume = surface * poolAverageDepth;
         newCalculations.volumeM3 = parseFloat(volume.toFixed(2));
         newCalculations.volumeLiters = parseFloat((volume * 1000).toFixed(2));
+        newCalculations.requiredSaltTotal = parseFloat((newCalculations.volumeM3 * 4).toFixed(2)); // 4 kg/m³
+      } else {
+        newCalculations.volumeM3 = undefined;
+        newCalculations.volumeLiters = undefined;
+        newCalculations.requiredSaltTotal = undefined;
       }
       
       if (typeof currentSalt === 'number' && currentSalt >= 0 && newCalculations.requiredSaltTotal !== undefined) {
         newCalculations.saltToAdd = parseFloat(Math.max(0, newCalculations.requiredSaltTotal - currentSalt).toFixed(2));
       } else if (newCalculations.requiredSaltTotal !== undefined){
-        newCalculations.saltToAdd = newCalculations.requiredSaltTotal; // If current salt not entered, suggest total
+        newCalculations.saltToAdd = newCalculations.requiredSaltTotal;
+      } else {
+         newCalculations.saltToAdd = undefined;
       }
+    } else {
+        newCalculations.surfaceArea = undefined;
+        newCalculations.volumeM3 = undefined;
+        newCalculations.volumeLiters = undefined;
+        newCalculations.requiredSaltTotal = undefined;
+        newCalculations.saltToAdd = undefined;
     }
     setCalculatedValues(prev => ({ ...prev, ...newCalculations }));
   }, [watchedValues.poolLength, watchedValues.poolWidth, watchedValues.poolAverageDepth, watchedValues.currentSalt]);
@@ -101,17 +113,17 @@ export default function PoolPalApp() {
         poolAverageDepth: data.poolAverageDepth,
         currentChlorine: data.currentChlorine,
         currentPH: data.currentPH,
-        targetChlorine: 1.25, // Default ideal target
-        targetPH: 7.3,      // Default ideal target
+        targetChlorine: 1.25, 
+        targetPH: 7.3,      
       };
       const result = await suggestDosage(aiInput);
       setDosageSuggestions(result);
     } catch (error) {
-      console.error("Error getting dosage suggestions:", error);
+      console.error("Errore nell'ottenere suggerimenti di dosaggio:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to get dosage suggestions. Please try again.",
+        title: "Errore",
+        description: "Impossibile ottenere i suggerimenti di dosaggio. Riprova.",
       });
     } finally {
       setIsLoading(false);
@@ -119,10 +131,10 @@ export default function PoolPalApp() {
   };
 
   const idealValues = [
-    { parameter: "Chlorine", value: "1.0 – 1.5 mg/l", icon: <Atom className="w-4 h-4 text-accent" /> },
-    { parameter: "pH", value: "7.2 – 7.4", icon: <Droplets className="w-4 h-4 text-accent" /> },
+    { parameter: "Cloro", value: "1,0 – 1,5 mg/l", icon: <Atom className="w-4 h-4 text-accent" /> },
+    { parameter: "pH", value: "7,2 – 7,4", icon: <Droplets className="w-4 h-4 text-accent" /> },
     { parameter: "Redox", value: "750 – 800 mV", icon: <Zap className="w-4 h-4 text-accent" /> },
-    { parameter: "Salt", value: "4 kg/m²", icon: <SaltIcon className="w-4 h-4 text-accent" /> },
+    { parameter: "Sale", value: "4 kg/m³", icon: <SaltIcon className="w-4 h-4 text-accent" /> },
   ];
 
   const renderFormField = (name: keyof FormValues, label: string, icon: React.ReactNode, placeholder?: string, type: string = "number", step: string = "0.1") => (
@@ -150,42 +162,42 @@ export default function PoolPalApp() {
           className="font-headline text-4xl font-bold text-primary flex items-center justify-center gap-2"
           suppressHydrationWarning={true}
         >
-          <Waves className="w-10 h-10" /> Pool Pal
+          <Waves className="w-10 h-10" /> Amico Piscina
         </h1>
         <p 
           className="text-muted-foreground"
           suppressHydrationWarning={true}
         >
-          Your smart pool chemistry assistant.
+          Il tuo assistente intelligente per la chimica della piscina.
         </p>
       </header>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card className="shadow-lg overflow-hidden">
           <CardHeader className="bg-primary/10">
-            <CardTitle className="font-headline flex items-center gap-2 text-xl"><Ruler className="w-6 h-6 text-primary" />Pool Dimensions & Temperature</CardTitle>
-            <CardDescription>Enter your pool's measurements.</CardDescription>
+            <CardTitle className="font-headline flex items-center gap-2 text-xl"><Ruler className="w-6 h-6 text-primary" />Dimensioni Piscina & Temperatura</CardTitle>
+            <CardDescription>Inserisci le misure della tua piscina.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderFormField("poolLength", "Length (m)", <Ruler className="w-4 h-4" />, "e.g., 10")}
-            {renderFormField("poolWidth", "Width (m)", <Ruler className="w-4 h-4" />, "e.g., 5")}
-            {renderFormField("poolAverageDepth", "Average Depth (m)", <Ruler className="w-4 h-4" />, "e.g., 1.5")}
-            {renderFormField("waterTemperature", "Water Temp (°C) (Optional)", <Thermometer className="w-4 h-4" />, "e.g., 25")}
+            {renderFormField("poolLength", "Lunghezza (m)", <Ruler className="w-4 h-4" />, "es., 10")}
+            {renderFormField("poolWidth", "Larghezza (m)", <Ruler className="w-4 h-4" />, "es., 5")}
+            {renderFormField("poolAverageDepth", "Profondità Media (m)", <Ruler className="w-4 h-4" />, "es., 1,5")}
+            {renderFormField("waterTemperature", "Temp. Acqua (°C) (Opzionale)", <Thermometer className="w-4 h-4" />, "es., 25")}
           </CardContent>
         </Card>
 
         <Card className="shadow-lg overflow-hidden">
           <CardHeader className="bg-accent/10">
-            <CardTitle className="font-headline flex items-center gap-2 text-xl"><Calculator className="w-6 h-6 text-accent" />Calculations & <Target className="w-6 h-6 text-accent"/>Targets</CardTitle>
+            <CardTitle className="font-headline flex items-center gap-2 text-xl"><Calculator className="w-6 h-6 text-accent" />Calcoli & <Target className="w-6 h-6 text-accent"/>Valori Ideali</CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div><strong>Surface Area:</strong> {calculatedValues.surfaceArea ?? 'N/A'} m²</div>
+                <div><strong>Area Superficie:</strong> {calculatedValues.surfaceArea ?? 'N/A'} m²</div>
                 <div><strong>Volume:</strong> {calculatedValues.volumeM3 ?? 'N/A'} m³ ({calculatedValues.volumeLiters ?? 'N/A'} L)</div>
-                <div><strong>Total Salt Needed (for 4kg/m²):</strong> {calculatedValues.requiredSaltTotal ?? 'N/A'} kg</div>
+                <div><strong>Sale Totale Necessario (per 4kg/m³):</strong> {calculatedValues.requiredSaltTotal ?? 'N/A'} kg</div>
             </div>
             <Separator />
-            <h4 className="font-semibold text-md">Ideal Water Parameters:</h4>
+            <h4 className="font-semibold text-md">Parametri Ideali Acqua:</h4>
             <ul className="space-y-1 text-sm">
               {idealValues.map(item => (
                 <li key={item.parameter} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
@@ -199,55 +211,55 @@ export default function PoolPalApp() {
 
         <Card className="shadow-lg overflow-hidden">
           <CardHeader className="bg-primary/10">
-            <CardTitle className="font-headline flex items-center gap-2 text-xl"><TestTube2 className="w-6 h-6 text-primary" />Current Water Analysis</CardTitle>
-            <CardDescription>Enter values from your latest water test.</CardDescription>
+            <CardTitle className="font-headline flex items-center gap-2 text-xl"><TestTube2 className="w-6 h-6 text-primary" />Analisi Acqua Attuale</CardTitle>
+            <CardDescription>Inserisci i valori del tuo ultimo test dell'acqua.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderFormField("currentChlorine", "Free Chlorine (mg/l)", <Atom className="w-4 h-4" />, "e.g., 0.5")}
-            {renderFormField("currentPH", "pH", <Droplets className="w-4 h-4" />, "e.g., 7.8")}
-            {renderFormField("currentRedox", "Redox (mV) (Optional)", <Zap className="w-4 h-4" />, "e.g., 650")}
-            {renderFormField("currentSalt", "Current Salt (kg) (Optional)", <SaltIcon className="w-4 h-4" />, "e.g., 50")}
+            {renderFormField("currentChlorine", "Cloro Libero (mg/l)", <Atom className="w-4 h-4" />, "es., 0,5")}
+            {renderFormField("currentPH", "pH", <Droplets className="w-4 h-4" />, "es., 7,8")}
+            {renderFormField("currentRedox", "Redox (mV) (Opzionale)", <Zap className="w-4 h-4" />, "es., 650")}
+            {renderFormField("currentSalt", "Sale Attuale (kg) (Opzionale)", <SaltIcon className="w-4 h-4" />, "es., 50")}
           </CardContent>
           <CardFooter className="p-6">
             <Button type="submit" disabled={isLoading} className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground">
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
-              Calculate & Get Dosage Suggestions
+              Calcola & Ottieni Suggerimenti Dosaggio
             </Button>
           </CardFooter>
         </Card>
       </form>
 
-      {(dosageSuggestions || (calculatedValues.surfaceArea && typeof watchedValues.currentSalt === 'number') ) && (
+      {(dosageSuggestions || (calculatedValues.volumeM3 && typeof watchedValues.currentSalt === 'number') || (calculatedValues.volumeM3 && watchedValues.currentSalt === undefined && calculatedValues.saltToAdd !== undefined) ) && (
         <Card className="shadow-lg overflow-hidden">
           <CardHeader className="bg-accent/10">
-            <CardTitle className="font-headline flex items-center gap-2 text-xl"><Lightbulb className="w-6 h-6 text-accent" />Dosage Recommendations</CardTitle>
+            <CardTitle className="font-headline flex items-center gap-2 text-xl"><Lightbulb className="w-6 h-6 text-accent" />Suggerimenti Dosaggio</CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             {dosageSuggestions?.chlorineDosageSuggestion && (
               <div className="p-3 border rounded-md bg-background">
-                <h4 className="font-semibold flex items-center gap-2"><Atom className="w-5 h-5 text-primary" />Chlorine Dosage:</h4>
+                <h4 className="font-semibold flex items-center gap-2"><Atom className="w-5 h-5 text-primary" />Dosaggio Cloro:</h4>
                 <p className="text-sm whitespace-pre-line">{dosageSuggestions.chlorineDosageSuggestion}</p>
               </div>
             )}
             {dosageSuggestions?.phMinusDosageSuggestion && (
               <div className="p-3 border rounded-md bg-background">
-                <h4 className="font-semibold flex items-center gap-2"><Droplets className="w-5 h-5 text-primary" />pH Minus Dosage:</h4>
+                <h4 className="font-semibold flex items-center gap-2"><Droplets className="w-5 h-5 text-primary" />Dosaggio pH Minus:</h4>
                 <p className="text-sm whitespace-pre-line">{dosageSuggestions.phMinusDosageSuggestion}</p>
               </div>
             )}
-            {typeof calculatedValues.saltToAdd === 'number' && calculatedValues.saltToAdd >= 0 && (
+            {typeof calculatedValues.saltToAdd === 'number' && calculatedValues.saltToAdd >= 0 && calculatedValues.volumeM3 !== undefined && (
                  <div className="p-3 border rounded-md bg-background">
-                    <h4 className="font-semibold flex items-center gap-2"><SaltIcon className="w-5 h-5 text-primary" />Salt to Add:</h4>
-                    <p className="text-sm">You need to add approximately <strong>{calculatedValues.saltToAdd.toFixed(2)} kg</strong> of salt to reach the target of 4 kg/m².</p>
-                    {typeof watchedValues.currentSalt !== 'number' && <p className="text-xs text-muted-foreground">This assumes 0kg current salt as no value was provided.</p>}
+                    <h4 className="font-semibold flex items-center gap-2"><SaltIcon className="w-5 h-5 text-primary" />Sale da Aggiungere:</h4>
+                    <p className="text-sm">Devi aggiungere circa <strong>{calculatedValues.saltToAdd.toFixed(2)} kg</strong> di sale per raggiungere l'obiettivo di 4 kg/m³.</p>
+                    {typeof watchedValues.currentSalt !== 'number' && <p className="text-xs text-muted-foreground">Questo presume 0kg di sale attuale poiché non è stato fornito alcun valore.</p>}
                  </div>
             )}
             
             <Alert variant="default" className="border-primary/50 bg-primary/5">
                 <AlertTriangleIcon className="h-5 w-5 text-primary" />
-                <AlertTitle className="font-semibold text-primary">Important Disclaimer</AlertTitle>
+                <AlertTitle className="font-semibold text-primary">Avviso Importante</AlertTitle>
                 <AlertDescription className="text-sm">
-                All dosage suggestions are approximations. Always calibrate dosages based on the specific products you are using and re-test water parameters after application. Consult product instructions for precise dosing.
+                Tutti i suggerimenti di dosaggio sono approssimazioni. Calibra sempre i dosaggi in base ai prodotti specifici che utilizzi e ripeti il test dei parametri dell'acqua dopo l'applicazione. Consulta le istruzioni del prodotto per un dosaggio preciso.
                 </AlertDescription>
             </Alert>
           </CardContent>
@@ -255,9 +267,9 @@ export default function PoolPalApp() {
       )}
       <footer className="text-center py-4 text-sm text-muted-foreground">
         {currentYear !== null ? (
-          <p suppressHydrationWarning={true}>&copy; {currentYear} Pool Pal. Dive into perfect water chemistry!</p>
+          <p suppressHydrationWarning={true}>&copy; {currentYear} Amico Piscina. Tuffati in un'acqua dalla chimica perfetta!</p>
         ) : (
-          <p suppressHydrationWarning={true}>&copy; Pool Pal. Dive into perfect water chemistry!</p>
+          <p suppressHydrationWarning={true}>&copy; Amico Piscina. Tuffati in un'acqua dalla chimica perfetta!</p>
         )}
       </footer>
     </div>
