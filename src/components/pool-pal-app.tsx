@@ -127,7 +127,7 @@ export default function PoolPalApp() {
 
   const renderFormField = (name: keyof FormValues, label: string, icon: React.ReactNode, placeholder?: string, type: string = "number", step: string = "0.1") => (
     <div className="space-y-1">
-      <Label htmlFor={name} className="flex items-center gap-2 text-sm">
+      <Label htmlFor={name} className="flex items-center gap-2 text-sm" suppressHydrationWarning={true}>
         {icon} {label}
       </Label>
       <Input
