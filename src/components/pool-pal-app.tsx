@@ -146,10 +146,18 @@ export default function PoolPalApp() {
   return (
     <div className="container mx-auto p-4 max-w-3xl space-y-6">
       <header className="text-center py-6">
-        <h1 className="font-headline text-4xl font-bold text-primary flex items-center justify-center gap-2">
+        <h1 
+          className="font-headline text-4xl font-bold text-primary flex items-center justify-center gap-2"
+          suppressHydrationWarning={true}
+        >
           <Waves className="w-10 h-10" /> Pool Pal
         </h1>
-        <p className="text-muted-foreground">Your smart pool chemistry assistant.</p>
+        <p 
+          className="text-muted-foreground"
+          suppressHydrationWarning={true}
+        >
+          Your smart pool chemistry assistant.
+        </p>
       </header>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -247,9 +255,9 @@ export default function PoolPalApp() {
       )}
       <footer className="text-center py-4 text-sm text-muted-foreground">
         {currentYear !== null ? (
-          <p>&copy; {currentYear} Pool Pal. Dive into perfect water chemistry!</p>
+          <p suppressHydrationWarning={true}>&copy; {currentYear} Pool Pal. Dive into perfect water chemistry!</p>
         ) : (
-          <p>&copy; Pool Pal. Dive into perfect water chemistry!</p>
+          <p suppressHydrationWarning={true}>&copy; Pool Pal. Dive into perfect water chemistry!</p>
         )}
       </footer>
     </div>
