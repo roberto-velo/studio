@@ -15,16 +15,13 @@ import { useToast } from "@/hooks/use-toast";
 import { suggestDosage, type SuggestDosageOutput } from '@/ai/flows/suggest-dosage';
 import { Loader2, Ruler, Thermometer, Calculator, Target, TestTube2, Atom, Droplets, Zap, Sparkles as SaltIcon, Lightbulb, Waves, AlertTriangle } from 'lucide-react';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+
 
 const formSchema = z.object({
   poolLength: z.coerce.number().positive({ message: "La lunghezza deve essere positiva." }),
   poolWidth: z.coerce.number().positive({ message: "La larghezza deve essere positiva." }),
   poolAverageDepth: z.coerce.number().positive({ message: "La profondità media deve essere positiva." }),
   waterTemperature: z.coerce.number().optional(),
-  trattamentoPiscina: z.enum(["cloro", "sale", "ossigeno", "bromo"], {
-    required_error: "Seleziona un tipo di trattamento.",
-  }),
   currentChlorine: z.coerce.number().min(0, { message: "Il cloro non può essere negativo." }),
   currentPH: z.coerce.number().min(0, { message: "Il pH non può essere negativo." }).max(14, { message: "Il pH deve essere compreso tra 0 e 14." }),
   currentRedox: z.coerce.number().optional(),
@@ -56,7 +53,6 @@ export default function PoolPalApp() {
       poolWidth: undefined,
       poolAverageDepth: undefined,
       waterTemperature: undefined,
-      trattamentoPiscina: undefined,
       currentChlorine: undefined,
       currentPH: undefined,
       currentRedox: undefined,
@@ -117,7 +113,6 @@ export default function PoolPalApp() {
         poolLength: data.poolLength,
         poolWidth: data.poolWidth,
         poolAverageDepth: data.poolAverageDepth,
-        trattamentoPiscina: data.trattamentoPiscina,
         currentChlorine: data.currentChlorine,
         currentPH: data.currentPH,
         targetChlorine: 1.25, 
@@ -220,34 +215,9 @@ export default function PoolPalApp() {
           <Card className="shadow-lg overflow-hidden">
             <CardHeader className="bg-primary/10">
               <CardTitle className="font-headline flex items-center gap-2 text-xl"><TestTube2 className="w-6 h-6 text-primary" />Analisi Acqua Attuale</CardTitle>
-              <CardDescription>Inserisci i valori del tuo ultimo test dell'acqua e il tipo di trattamento.</CardDescription>
+              <CardDescription>Inserisci i valori del tuo ultimo test dell'acqua.</CardDescription>
             </CardHeader>
             <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="trattamentoPiscina"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel className="flex items-center gap-2 text-sm" suppressHydrationWarning={true}>
-                      <TestTube2 className="w-4 h-4" /> Tipo di Trattamento
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className={errors.trattamentoPiscina ? 'border-destructive' : ''}>
-                          <SelectValue placeholder="Seleziona il tipo di trattamento" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="cloro">Cloro</SelectItem>
-                        <SelectItem value="sale">Sale (Elettrolisi)</SelectItem>
-                        <SelectItem value="ossigeno">Ossigeno Attivo</SelectItem>
-                        <SelectItem value="bromo">Bromo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               {renderFormField("currentChlorine", "Cloro Libero (mg/l)", <Atom className="w-4 h-4" />, "es., 0.5")}
               {renderFormField("currentPH", "pH", <Droplets className="w-4 h-4" />, "es., 7.8")}
               {renderFormField("currentRedox", "Redox (mV) (Opzionale)", <Zap className="w-4 h-4" />, "es., 650")}
@@ -309,5 +279,3 @@ export default function PoolPalApp() {
     </div>
   );
 }
-
-    
