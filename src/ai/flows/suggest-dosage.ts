@@ -73,8 +73,9 @@ Istruzioni:
    - Includi la quantità approssimativa di dicloro granulare (o cloro liquido equivalente) necessaria per un aumento di 1 mg/l per 10 metri cubi, come indicato nella base di conoscenza. Sottolinea che le quantità esatte possono variare a seconda del prodotto specifico e che è sempre necessario seguire le istruzioni del produttore. Includi il disclaimer nel suggerimento.
 3. Se 'currentPH' è fornito, fornisci un suggerimento di dosaggio di pH- per raggiungere il livello di pH desiderato ({{targetPH}}) dal livello attuale ({{currentPH}}).
    - Includi la quantità approssimativa di pH- granulare (o prodotto equivalente) necessaria per diminuire il pH di 0,1 unità per 10 metri cubi, come indicato nella base di conoscenza. Includi il disclaimer nel suggerimento.
-4. Se non viene fornito né 'currentChlorine' né 'currentPH', non generare alcun suggerimento di dosaggio. L'output JSON dovrebbe avere i campi dei suggerimenti omessi o nulli.
-5. Tutti i suggerimenti e i disclaimer devono essere in italiano.
+4. Fornisci 'chlorineDosageSuggestion' solo se 'currentChlorine' è stato fornito. Altrimenti, ometti 'chlorineDosageSuggestion' o impostalo a null nell'output JSON.
+5. Fornisci 'phMinusDosageSuggestion' solo se 'currentPH' è stato fornito. Altrimenti, ometti 'phMinusDosageSuggestion' o impostalo a null nell'output JSON.
+6. Tutti i suggerimenti e i disclaimer devono essere in italiano.
 
 Formato Output Esempio (le chiavi devono rimanere in inglese, i valori devono essere in italiano; i campi dei suggerimenti sono opzionali):
 {
@@ -95,9 +96,8 @@ const suggestDosageFlow = ai.defineFlow(
     outputSchema: SuggestDosageOutputSchema,
   },
   async input => {
-    // Se non viene fornito né cloro attuale né pH attuale, potremmo restituire un output vuoto prima di chiamare il prompt.
-    // Tuttavia, il prompt stesso è istruito a gestire questo caso, quindi lasciamo che sia il modello a decidere.
     const {output} = await prompt(input);
-    return output!; // output può essere vuoto o contenere solo i suggerimenti applicabili
+    return output!; 
   }
 );
+
